@@ -58,6 +58,7 @@ def send_story(message):
 # This is the webhook endpoint Vercel will hit
 @app.route('/', methods=['POST'])
 def webhook():
+    print("Webhook called!")
     if request.method == 'POST':
         update = request.get_json()
         if 'message' in update:
