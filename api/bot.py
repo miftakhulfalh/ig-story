@@ -56,12 +56,12 @@ def send_story(message):
         bot.send_message(chat_id, f'Error: {e}')
 
 # This is the webhook endpoint Vercel will hit
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET', 'POST'])
 def webhook():
-    print("Webhook called!")
-    if request.method == 'POST':
+    if request.method == 'GET':
+        return 'Bot is running', 200
+    elif request.method == 'POST':
         update = request.get_json()
-        if 'message' in update:
-            bot.process_new_updates([update])
+        # proses update Telegram di sini
         return 'OK', 200
 
