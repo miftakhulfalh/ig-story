@@ -56,7 +56,7 @@ def send_story(message):
         bot.send_message(chat_id, f'Error: {e}')
 
 # This is the webhook endpoint Vercel will hit
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
         return 'Bot is running', 200
