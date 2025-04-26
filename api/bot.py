@@ -5,9 +5,7 @@ import requests
 import telebot
 from telebot.types import Update
 from io import BytesIO
-import logging
-logging.basicConfig(level=logging.DEBUG)
-logging.debug(f"Base type: {type(base)}")
+
 
 # Initialize TeleBot with your Bot Token
 BOT_TOKEN = os.getenv('BOT_TOKEN')
