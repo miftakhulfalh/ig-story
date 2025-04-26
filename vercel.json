@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "installCommand": "pip install --upgrade --only-binary=:all: python-telegram-bot instaloader requests",
+  "installCommand": "pip3.12 install --disable-pip-version-check --upgrade --only-binary=:all: -r requirements.txt",
   "builds": [
     { "src": "api/bot.py", "use": "@vercel/python" }
   ],
