@@ -5,6 +5,9 @@ import requests
 import telebot
 from telebot.types import Update
 from io import BytesIO
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logging.debug(f"Base type: {type(base)}")
 
 # Initialize TeleBot with your Bot Token
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -55,7 +58,6 @@ def send_story(message):
     except Exception as e:
         bot.send_message(chat_id, f'Error: {e}')
 
-# Vercel-compatible serverless handler
 def handler(event, context):
     # Parse incoming webhook body
     try:
@@ -64,9 +66,9 @@ def handler(event, context):
         body = {}
 
     # Process Telegram update if present
-if 'message' in body:
-    update = Update.de_json(body, bot)
-    bot.process_new_updates([update])
+    if 'message' in body:
+        update = Update.de_json(body, bot)
+        bot.process_new_updates([update])
 
     # Return HTTP 200 to acknowledge
     return { 'statusCode': 200, 'body': 'OK' }
