@@ -36,12 +36,12 @@ def webhook():
                 send_message(chat_id, f'Mengambil story {username}...')
 
                 L = instaloader.Instaloader(
-                    download_stories_only=True,
-                    download_videos=True,
-                    save_metadata=False,
-                    download_video_thumbnails=False,
-                    dirname_pattern=''
-                )
+    download_videos=True,
+    save_metadata=False,
+    download_video_thumbnails=False,
+    dirname_pattern=''
+)
+
 
                 profile = instaloader.Profile.from_username(L.context, username)
                 found = False
