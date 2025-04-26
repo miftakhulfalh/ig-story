@@ -13,6 +13,7 @@ app = Flask(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# Handler untuk command /story
 @bot.message_handler(commands=['story'])
 def send_story(message):
     args = message.text.split(maxsplit=1)
@@ -55,13 +56,14 @@ def send_story(message):
     except Exception as e:
         bot.send_message(chat_id, f'Error: {e}')
 
-# This is the webhook endpoint Vercel will hit
+# Webhook endpoint untuk Vercel
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
         return 'Bot is running', 200
     elif request.method == 'POST':
-        update = request.get_json()
-        # proses update Telegram di sini
+        json_str = request.get_data().decode('UTF-8')
+        update = telebot.types.Update.de_json(json_str)
+        bot.process_new_updates([update])
         return 'OK', 200
 
