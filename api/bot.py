@@ -3,11 +3,13 @@ import json
 import instaloader
 import requests
 import telebot
-from telebot.types import Update
 from io import BytesIO
+from flask import Flask, request
 
+# Initialize Flask app
+app = Flask(__name__)
 
-# Initialize TeleBot with your Bot Token
+# Initialize TeleBot
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -22,7 +24,6 @@ def send_story(message):
     chat_id = message.chat.id
 
     try:
-        # Instantiate Instaloader for stories only
         L = instaloader.Instaloader(
             download_stories_only=True,
             download_videos=True,
@@ -30,8 +31,6 @@ def send_story(message):
             download_video_thumbnails=False,
             dirname_pattern=''
         )
-        # Optional login for private stories
-        # L.login('your_username', 'your_password')
 
         profile = instaloader.Profile.from_username(L.context, username)
         found = False
@@ -56,17 +55,12 @@ def send_story(message):
     except Exception as e:
         bot.send_message(chat_id, f'Error: {e}')
 
-def handler(event, context):
-    # Parse incoming webhook body
-    try:
-        body = json.loads(event.get('body', '{}') or '{}')
-    except Exception:
-        body = {}
+# This is the webhook endpoint Vercel will hit
+@app.route('/', methods=['POST'])
+def webhook():
+    if request.method == 'POST':
+        update = request.get_json()
+        if 'message' in update:
+            bot.process_new_updates([update])
+        return 'OK', 200
 
-    # Process Telegram update if present
-    if 'message' in body:
-        update = Update.de_json(body, bot)
-        bot.process_new_updates([update])
-
-    # Return HTTP 200 to acknowledge
-    return { 'statusCode': 200, 'body': 'OK' }
