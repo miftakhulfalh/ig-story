@@ -1,5 +1,10 @@
 {
   "version": 2,
-  "builds": [{ "src": "api/bot.py", "use": "@vercel/python" }],
-  "routes": [{ "src": "/(.*)", "dest": "/api/bot.py" }]
+  "installCommand": "pip install --upgrade --only-binary=:all: python-telegram-bot instaloader requests",
+  "builds": [
+    { "src": "api/bot.py", "use": "@vercel/python" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/api/bot.py" }
+  ]
 }
