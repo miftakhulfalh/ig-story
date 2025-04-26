@@ -3,6 +3,7 @@ import json
 import instaloader
 import requests
 import telebot
+from telebot.types import Update
 from io import BytesIO
 
 # Initialize TeleBot with your Bot Token
@@ -63,8 +64,9 @@ def handler(event, context):
         body = {}
 
     # Process Telegram update if present
-    if 'message' in body:
-        bot.process_new_updates([body])
+if 'message' in body:
+    update = Update.de_json(body, bot)
+    bot.process_new_updates([update])
 
     # Return HTTP 200 to acknowledge
     return { 'statusCode': 200, 'body': 'OK' }
