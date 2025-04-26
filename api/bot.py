@@ -4,12 +4,11 @@ import instaloader
 import requests
 import telebot
 from io import BytesIO
-from vercel import VercelRequest, VercelResponse
 
-# Initialize TeleBot\ BOT_TOKEN = os.getenv('BOT_TOKEN')
+# Initialize TeleBot with your Bot Token
+BOT_TOKEN = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Handler for Telegram bot commands
 @bot.message_handler(commands=['story'])
 def send_story(message):
     args = message.text.split(maxsplit=1)
@@ -21,7 +20,7 @@ def send_story(message):
     chat_id = message.chat.id
 
     try:
-        # Initialize Instaloader (in-memory)
+        # Instantiate Instaloader for stories only
         L = instaloader.Instaloader(
             download_stories_only=True,
             download_videos=True,
@@ -29,8 +28,8 @@ def send_story(message):
             download_video_thumbnails=False,
             dirname_pattern=''
         )
-        # Optional: login for private stories
-        # L.login('ig_username', 'ig_password')
+        # Optional login for private stories
+        # L.login('your_username', 'your_password')
 
         profile = instaloader.Profile.from_username(L.context, username)
         found = False
@@ -55,17 +54,17 @@ def send_story(message):
     except Exception as e:
         bot.send_message(chat_id, f'Error: {e}')
 
-# Vercel serverless handler
-
-def handler(request: VercelRequest) -> VercelResponse:
-    # Parse JSON body
+# Vercel-compatible serverless handler
+def handler(event, context):
+    # Parse incoming webhook body
     try:
-        body = request.json or {}
+        body = json.loads(event.get('body', '{}') or '{}')
     except Exception:
-        body = json.loads(request.get_data().decode('utf-8') or "{}")
+        body = {}
 
-    # Process Telegram update
+    # Process Telegram update if present
     if 'message' in body:
         bot.process_new_updates([body])
 
-    return VercelResponse('OK', status_code=200)
+    # Return HTTP 200 to acknowledge
+    return { 'statusCode': 200, 'body': 'OK' }
