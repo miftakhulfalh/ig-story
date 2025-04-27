@@ -12,12 +12,22 @@ SESSIONID = os.getenv('IG_SESSIONID')
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 def inject_session(L: instaloader.Instaloader, sessionid: str):
+    # Inject sessionid ke session requests
     cookie = requests.cookies.create_cookie(
         domain=".instagram.com",
         name="sessionid",
         value=sessionid
     )
     L.context._session.cookies.set_cookie(cookie)
+
+    # Setelah inject, harus verifikasi login
+    try:
+        L.context._log("Trying to validate session...")
+        # Fetch my own profile (supaya session valid)
+        profile = instaloader.Profile.from_username(L.context, "instagram")
+    except Exception as e:
+        raise Exception(f"Invalid session ID: {e}")
+
 
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
