@@ -7,10 +7,15 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
+# Environment Variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+IG_USERNAME = os.getenv('IG_USERNAME')  # optional
+IG_PASSWORD = os.getenv('IG_PASSWORD')  # optional
 IG_SESSIONID = os.getenv('IG_SESSIONID')
+
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
+# Helper Functions
 def send_message(chat_id, text):
     requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
         'chat_id': chat_id,
@@ -31,21 +36,32 @@ def setup_instaloader():
         dirname_pattern=''
     )
 
-    # Inject sessionid secara manual
-    from requests.cookies import RequestsCookieJar
-    cookie_jar = RequestsCookieJar()
-    cookie_jar.set('sessionid', IG_SESSIONID, domain='.instagram.com', path='/')
-    L.context._session.cookies.update(cookie_jar)
+    if IG_SESSIONID:
+        # Inject sessionid
+        L.context._session.cookies.set(
+            'sessionid', IG_SESSIONID, domain=".instagram.com", path="/"
+        )
+        # Validate
+        try:
+            instaloader.Profile.from_username(L.context, "instagram")
+            print("[INFO] SessionID valid, logged in.")
+            return L
+        except Exception as e:
+            print(f"[WARN] Session invalid: {e}")
 
-    # Try validate session
-    try:
-        instaloader.Profile.from_username(L.context, "instagram")
-        print("[INFO] SessionID valid, logged in.")
-    except Exception as e:
-        raise Exception(f"SessionID error: {e}")
+    # If no sessionid or invalid, try login
+    if IG_USERNAME and IG_PASSWORD:
+        try:
+            L.login(IG_USERNAME, IG_PASSWORD)
+            print("[INFO] Logged in with username+password")
+        except Exception as e:
+            raise Exception(f"Login gagal: {e}")
+    else:
+        raise Exception("No valid sessionid or login credentials available.")
 
     return L
 
+# Webhook endpoint
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
@@ -70,8 +86,10 @@ def webhook():
             try:
                 send_message(chat_id, f'Mengambil story {username}...')
 
+                # Setup Instaloader
                 L = setup_instaloader()
 
+                # Fetch profile
                 profile = instaloader.Profile.from_username(L.context, username)
                 found = False
 
