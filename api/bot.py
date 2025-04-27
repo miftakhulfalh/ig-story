@@ -33,8 +33,7 @@ def setup_instaloader():
         download_videos=True,
         save_metadata=False,
         download_video_thumbnails=False,
-        dirname_pattern='',
-        cleanup=True
+        dirname_pattern=''
     )
 
     # Perbaiki urutan: Update headers SETELAH L didefinisikan
