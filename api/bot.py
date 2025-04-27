@@ -33,13 +33,14 @@ def setup_instaloader():
         download_videos=True,
         save_metadata=False,
         download_video_thumbnails=False,
-        dirname_pattern=''
+        dirname_pattern='',
+        cleanup=True
     )
 
     # Perbaiki urutan: Update headers SETELAH L didefinisikan
     L.context._session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 200.0.0.28.107 (iPhone13,2; iOS 15_0; en_US; en-US; scale=3.00; 1170x2532; 190542886)",
+        "X-IG-App-ID": "1217981644879628"  # <-- Penting untuk API
     })
 
     # Cookie yang diperlukan
@@ -47,7 +48,9 @@ def setup_instaloader():
         'sessionid': IG_SESSIONID,
         'ds_user_id': os.getenv('IG_DS_USER_ID'),
         'csrftoken': os.getenv('IG_CSRFTOKEN'),
-        'rur': os.getenv('IG_RUR')
+        'rur': os.getenv('IG_RUR'),
+        'mid': os.getenv('IG_MID'),  # <-- Tambahkan ini
+        'ig_did': os.getenv('IG_DID')  # <-- Tambahkan ini
     }
 
     if all(cookies.values()):
@@ -55,16 +58,17 @@ def setup_instaloader():
             L.context._session.cookies.set(
                 name, value, domain=".instagram.com", path="/"
             )
+        # Di setup_instaloader()
         try:
-            # Ganti dengan username private ANDA
+            # Coba akses story sendiri
             profile = instaloader.Profile.from_username(L.context, "ker_anii")
-            print(f"[INFO] Session valid (Username: {profile.username})")
-            return L  # Pastikan return L di sini
+            stories = L.get_stories(userids=[profile.userid])
+            if not stories:
+                raise Exception("Validasi session gagal: Tidak bisa akses story")
+            print(f"[INFO] Session valid untuk story (Username: {profile.username})")
+            return L
         except Exception as e:
-            print(f"[ERROR] Session invalid: {e}")
-            L.context._session.cookies.clear()
-    else:
-        print("[WARN] Missing cookies. Falling back to username/password.")
+            print(f"[ERROR] Validasi story gagal: {e}")
 
     # Jika session gagal, coba login
     if IG_USERNAME and IG_PASSWORD:
@@ -108,18 +112,24 @@ def webhook():
                 profile = instaloader.Profile.from_username(L.context, username)
                 found = False
 
+                # Di dalam handler /story
                 for story in L.get_stories(userids=[profile.userid]):
                     for item in story.get_items():
-                        url = item.video_url if item.is_video else item.url
-                        resp = requests.get(url)
-                        bio = BytesIO(resp.content)
-                        bio.name = 'story.mp4' if item.is_video else 'story.jpg'
-
+                        # Gunakan instaloader untuk download, bukan requests.get
+                        L.download_storyitem(item, filename='story')
+                        
+                        # Baca file yang baru didownload
+                        filename = f"story/{item.date_utc.strftime('%Y%m%d_%H%M%S')}"
                         if item.is_video:
-                            send_video(chat_id, bio)
+                            filename += ".mp4"
+                            with open(filename, 'rb') as f:
+                                send_video(chat_id, f)
                         else:
-                            send_photo(chat_id, bio)
-
+                            filename += ".jpg"
+                            with open(filename, 'rb') as f:
+                                send_photo(chat_id, f)
+                        
+                        os.remove(filename)  # Hapus file setelah dikirim
                         found = True
 
                 if not found:
