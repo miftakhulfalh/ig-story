@@ -11,6 +11,14 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 SESSIONID = os.getenv('IG_SESSIONID')
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
+def inject_session(L: instaloader.Instaloader, sessionid: str):
+    cookie = requests.cookies.create_cookie(
+        domain=".instagram.com",
+        name="sessionid",
+        value=sessionid
+    )
+    L.context._session.cookies.set_cookie(cookie)
+
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
@@ -44,10 +52,8 @@ def webhook():
                     dirname_pattern=''
                 )
 
-                # Inject sessionid
-                L.context._default_session.cookies.update({
-                    'sessionid': SESSIONID,
-                })
+                # Inject session id
+                inject_session(L, SESSIONID)
 
                 profile = instaloader.Profile.from_username(L.context, username)
 
@@ -68,7 +74,7 @@ def webhook():
                         found = True
 
                 if not found:
-                    send_message(chat_id, 'User has no active stories.')
+                    send_message(chat_id, 'User ini tidak memiliki story aktif.')
 
             except Exception as e:
                 send_message(chat_id, f'Error: {e}')
