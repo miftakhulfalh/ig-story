@@ -1,4 +1,5 @@
 import os
+import json
 import instaloader
 import requests
 from io import BytesIO
@@ -7,12 +8,25 @@ from flask import Flask, request
 # Initialize Flask app
 app = Flask(__name__)
 
+# Get Environment Variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 SESSIONID = os.getenv('IG_SESSIONID')
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
+# Helper Functions
+def send_message(chat_id, text):
+    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
+        'chat_id': chat_id,
+        'text': text
+    })
+
+def send_photo(chat_id, photo):
+    requests.post(f"{TELEGRAM_API_URL}/sendPhoto", files={'photo': photo}, data={'chat_id': chat_id})
+
+def send_video(chat_id, video):
+    requests.post(f"{TELEGRAM_API_URL}/sendVideo", files={'video': video}, data={'chat_id': chat_id})
+
 def inject_session(L: instaloader.Instaloader, sessionid: str):
-    # Inject sessionid ke session requests
     cookie = requests.cookies.create_cookie(
         domain=".instagram.com",
         name="sessionid",
@@ -20,20 +34,18 @@ def inject_session(L: instaloader.Instaloader, sessionid: str):
     )
     L.context._session.cookies.set_cookie(cookie)
 
-    # Setelah inject, harus verifikasi login
+def validate_session(L: instaloader.Instaloader):
     try:
-        L.context._log("Trying to validate session...")
-        # Fetch my own profile (supaya session valid)
-        profile = instaloader.Profile.from_username(L.context, "instagram")
+        # Test fetch profile to check session validity
+        instaloader.Profile.from_username(L.context, "instagram")
     except Exception as e:
-        raise Exception(f"Invalid session ID: {e}")
+        raise Exception(f"Invalid session: {e}")
 
-
+# Main webhook route
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
         return 'Bot is running', 200
-
     elif request.method == 'POST':
         data = request.get_json()
 
@@ -52,9 +64,9 @@ def webhook():
             username = args[1].strip()
 
             try:
-                send_message(chat_id, f'Mengambil story dari @{username}...')
+                send_message(chat_id, f'Mengambil story {username}...')
 
-                # Create Instaloader instance
+                # Setup Instaloader
                 L = instaloader.Instaloader(
                     download_videos=True,
                     save_metadata=False,
@@ -62,11 +74,11 @@ def webhook():
                     dirname_pattern=''
                 )
 
-                # Inject session id
                 inject_session(L, SESSIONID)
+                validate_session(L)
 
+                # Load Profile
                 profile = instaloader.Profile.from_username(L.context, username)
-
                 found = False
 
                 for story in L.get_stories(userids=[profile.userid]):
@@ -84,21 +96,13 @@ def webhook():
                         found = True
 
                 if not found:
-                    send_message(chat_id, 'User ini tidak memiliki story aktif.')
+                    send_message(chat_id, 'User has no active stories.')
 
             except Exception as e:
                 send_message(chat_id, f'Error: {e}')
 
         return 'OK', 200
 
-def send_message(chat_id, text):
-    requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
-        'chat_id': chat_id,
-        'text': text
-    })
-
-def send_photo(chat_id, photo):
-    requests.post(f"{TELEGRAM_API_URL}/sendPhoto", files={'photo': photo}, data={'chat_id': chat_id})
-
-def send_video(chat_id, video):
-    requests.post(f"{TELEGRAM_API_URL}/sendVideo", files={'video': video}, data={'chat_id': chat_id})
+# Run Flask app (Local dev only, di Vercel tidak kepakai)
+if __name__ == '__main__':
+    app.run()
