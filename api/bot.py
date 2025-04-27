@@ -36,18 +36,36 @@ def setup_instaloader():
         dirname_pattern=''
     )
 
+def setup_instaloader():
+    L = instaloader.Instaloader(
+        download_videos=True,
+        save_metadata=False,
+        download_video_thumbnails=False,
+        dirname_pattern=''
+    )
+
     if IG_SESSIONID:
-        # Inject sessionid
-        L.context._session.cookies.set(
-            'sessionid', IG_SESSIONID, domain=".instagram.com", path="/"
-        )
-        # Validate
+        # Sertakan semua cookie yang diperlukan
+        cookies = {
+            'sessionid': IG_SESSIONID,
+            'ds_user_id': os.getenv('IG_DS_USER_ID'),
+            'csrftoken': os.getenv('IG_CSRFTOKEN')
+        }
+        for name, value in cookies.items():
+            if value:
+                L.context._session.cookies.set(
+                    name, value, domain=".instagram.com", path="/"
+                )
+        # Validasi dengan profil sendiri (misalnya)
         try:
-            instaloader.Profile.from_username(L.context, "instagram")
+            profile = instaloader.Profile.from_username(L.context, "ker_anii")
             print("[INFO] SessionID valid, logged in.")
             return L
         except Exception as e:
             print(f"[WARN] Session invalid: {e}")
+            L.context._session.cookies.clear()
+            # Lanjut ke login username/password jika ada
+    # ... (sisanya tetap)
 
     # If no sessionid or invalid, try login
     if IG_USERNAME and IG_PASSWORD:
