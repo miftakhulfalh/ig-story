@@ -36,24 +36,18 @@ def setup_instaloader():
         dirname_pattern=''
     )
 
-def setup_instaloader():
+    # Perbaiki urutan: Update headers SETELAH L didefinisikan
     L.context._session.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9",
-})
-    L = instaloader.Instaloader(
-        download_videos=True,
-        save_metadata=False,
-        download_video_thumbnails=False,
-        dirname_pattern=''
-    )
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+    })
 
     # Cookie yang diperlukan
     cookies = {
         'sessionid': IG_SESSIONID,
         'ds_user_id': os.getenv('IG_DS_USER_ID'),
         'csrftoken': os.getenv('IG_CSRFTOKEN'),
-        'rur': os.getenv('IG_RUR')  # Cookie tambahan
+        'rur': os.getenv('IG_RUR')
     }
 
     if all(cookies.values()):
@@ -61,28 +55,27 @@ def setup_instaloader():
             L.context._session.cookies.set(
                 name, value, domain=".instagram.com", path="/"
             )
-        # Validasi dengan profil private
         try:
-            profile = instaloader.Profile.from_username(L.context, "your_private_username")
+            # Ganti dengan username private ANDA
+            profile = instaloader.Profile.from_username(L.context, "ker_anii")
             print(f"[INFO] Session valid (Username: {profile.username})")
-            return L
+            return L  # Pastikan return L di sini
         except Exception as e:
             print(f"[ERROR] Session invalid: {e}")
-            L.context._session.cookies.clear()  # Hapus cookie yang gagal
+            L.context._session.cookies.clear()
     else:
         print("[WARN] Missing cookies. Falling back to username/password.")
 
-    # Jika session gagal, coba login dengan username/password
+    # Jika session gagal, coba login
     if IG_USERNAME and IG_PASSWORD:
         try:
             L.login(IG_USERNAME, IG_PASSWORD)
             print("[INFO] Logged in via username/password")
+            return L  # Return setelah login berhasil
         except Exception as e:
             raise Exception(f"Login failed: {e}")
     else:
         raise Exception("No valid session or credentials.")
-
-    return L
 # Webhook endpoint
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
