@@ -5,15 +5,12 @@ import requests
 from io import BytesIO
 from flask import Flask, request
 
-# Initialize Flask app
 app = Flask(__name__)
 
-# Get Environment Variables
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-SESSIONID = os.getenv('IG_SESSIONID')
+IG_SESSIONID = os.getenv('IG_SESSIONID')
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-# Helper Functions
 def send_message(chat_id, text):
     requests.post(f"{TELEGRAM_API_URL}/sendMessage", json={
         'chat_id': chat_id,
@@ -26,22 +23,29 @@ def send_photo(chat_id, photo):
 def send_video(chat_id, video):
     requests.post(f"{TELEGRAM_API_URL}/sendVideo", files={'video': video}, data={'chat_id': chat_id})
 
-def inject_session(L: instaloader.Instaloader, sessionid: str):
-    cookie = requests.cookies.create_cookie(
-        domain=".instagram.com",
-        name="sessionid",
-        value=sessionid
+def setup_instaloader():
+    L = instaloader.Instaloader(
+        download_videos=True,
+        save_metadata=False,
+        download_video_thumbnails=False,
+        dirname_pattern=''
     )
-    L.context._session.cookies.set_cookie(cookie)
 
-def validate_session(L: instaloader.Instaloader):
+    # Inject sessionid secara manual
+    from requests.cookies import RequestsCookieJar
+    cookie_jar = RequestsCookieJar()
+    cookie_jar.set('sessionid', IG_SESSIONID, domain='.instagram.com', path='/')
+    L.context._session.cookies.update(cookie_jar)
+
+    # Try validate session
     try:
-        # Test fetch profile to check session validity
         instaloader.Profile.from_username(L.context, "instagram")
+        print("[INFO] SessionID valid, logged in.")
     except Exception as e:
-        raise Exception(f"Invalid session: {e}")
+        raise Exception(f"SessionID error: {e}")
 
-# Main webhook route
+    return L
+
 @app.route('/api/bot', methods=['GET', 'POST'])
 def webhook():
     if request.method == 'GET':
@@ -66,18 +70,8 @@ def webhook():
             try:
                 send_message(chat_id, f'Mengambil story {username}...')
 
-                # Setup Instaloader
-                L = instaloader.Instaloader(
-                    download_videos=True,
-                    save_metadata=False,
-                    download_video_thumbnails=False,
-                    dirname_pattern=''
-                )
+                L = setup_instaloader()
 
-                inject_session(L, SESSIONID)
-                validate_session(L)
-
-                # Load Profile
                 profile = instaloader.Profile.from_username(L.context, username)
                 found = False
 
@@ -103,6 +97,5 @@ def webhook():
 
         return 'OK', 200
 
-# Run Flask app (Local dev only, di Vercel tidak kepakai)
 if __name__ == '__main__':
     app.run()
