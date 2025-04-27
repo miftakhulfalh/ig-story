@@ -9,6 +9,7 @@ from flask import Flask, request
 app = Flask(__name__)
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+SESSIONID = os.getenv('IG_SESSIONID')
 TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
 @app.route('/api/bot', methods=['GET', 'POST'])
@@ -35,12 +36,15 @@ def webhook():
             try:
                 send_message(chat_id, f'Mengambil story {username}...')
 
-                L = instaloader.Instaloader(
-    download_videos=True,
-    save_metadata=False,
-    download_video_thumbnails=False,
-    dirname_pattern=''
-)
+        L = instaloader.Instaloader(
+        download_videos=True,
+        save_metadata=False,
+        download_video_thumbnails=False,
+        dirname_pattern=''
+        )
+        L.context._default_session.cookies.update({
+        'sessionid': SESSIONID,
+        })
 
 
                 profile = instaloader.Profile.from_username(L.context, username)
