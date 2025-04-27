@@ -1,5 +1,4 @@
 import os
-import json
 import instaloader
 import requests
 from io import BytesIO
@@ -16,6 +15,7 @@ TELEGRAM_API_URL = f"https://api.telegram.org/bot{BOT_TOKEN}"
 def webhook():
     if request.method == 'GET':
         return 'Bot is running', 200
+
     elif request.method == 'POST':
         data = request.get_json()
 
@@ -34,20 +34,23 @@ def webhook():
             username = args[1].strip()
 
             try:
-                send_message(chat_id, f'Mengambil story {username}...')
+                send_message(chat_id, f'Mengambil story dari @{username}...')
 
-        L = instaloader.Instaloader(
-        download_videos=True,
-        save_metadata=False,
-        download_video_thumbnails=False,
-        dirname_pattern=''
-        )
-        L.context._default_session.cookies.update({
-        'sessionid': SESSIONID,
-        })
+                # Create Instaloader instance
+                L = instaloader.Instaloader(
+                    download_videos=True,
+                    save_metadata=False,
+                    download_video_thumbnails=False,
+                    dirname_pattern=''
+                )
 
+                # Inject sessionid
+                L.context._default_session.cookies.update({
+                    'sessionid': SESSIONID,
+                })
 
                 profile = instaloader.Profile.from_username(L.context, username)
+
                 found = False
 
                 for story in L.get_stories(userids=[profile.userid]):
