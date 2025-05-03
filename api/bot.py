@@ -102,7 +102,7 @@ def webhook():
             username = args[1].strip()
 
             try:
-                send_message(chat_id, f'Mengambil story {username}...')
+                send_message(chat_id, f'Mengambil story dari {username}...')
 
                 # Setup Instaloader
                 L = setup_instaloader()
